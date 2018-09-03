@@ -1,4 +1,4 @@
-# файл с токенами
+#файл с токенами
 constants.py
 
 #кэш-файлы
@@ -12,4 +12,4 @@ answer.json
 parser-test.py
 
 #папка с билдом
-duild/
+/duild
