@@ -59,7 +59,7 @@ def getURLs(nameVideo):
 
     else:
         return 'Извините, в нашей базе нет таких видео. Попробуйте снова.'
-        
+
 def main():
     getURLs(parsText(message))
 

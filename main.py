@@ -13,11 +13,13 @@ import variables
 app = Flask(__name__)
 # sslify = SSLify(app)
 
-URL = f'https://api.telegram.org/bot{constants.tokenTelBot}/'
+URL = f"https://api.telegram.org/bot{constants.tokenTelBot}/"
 
-#для удаления setWebhook и привязки setWebhook
-# print(URL+'setWebhook'+'?url=https://d6300647.ngrok.io')
-# print(URL + 'deleteWebhook')
+
+print(URL+'setWebhook'+'?url=https://stasyakass.pythonanywhere.com/')
+# #для удаления setWebhook и привязки setWebhook
+print(URL+'setWebhook'+'?url=https://71d4a9d0.ngrok.io')
+print(URL + 'deleteWebhook')
 
 #прокси для тестирования с локалки
 proxies = {
@@ -86,11 +88,10 @@ def sendInlineKeyboard(chatId, text):
     return r.json()
 
 # функция определения, есть ли в ответе отредактированные сообщения
-def varMess(res):
-    vars = 'message'
-
-    if 'edited_message' in res:
-        vars = 'edited_message'
+def varMess(r):
+    vars = "message"
+    if "edited_message" in r:
+        vars = "edited_message"
 
     return vars
 
@@ -101,15 +102,8 @@ def index():
         # print(r)
         # writeJson(r)
 
-        # действия при наличии вновь прибывшего в чате
-        if 'new_chat_members' in r['message']:
-            chatId = r['message']['chat']['id']
-            userName = r['message']['new_chat_member']['first_name']
-
-            sendMessage(chatId, f'{userName}, {variables.welcomeMessage}', replyMessageId=None)
-
-        # действия при наличии collback по нажатию на инлайн клавиатуру
-        elif 'callback_query' in r:
+        #действия при наличии collback по нажатию на инлайн клавиатуру
+        if 'callback_query' in r:
             chatId = r['callback_query']['message']['chat']['id']
             message = r['callback_query']['data']
             replyMessageId = r['callback_query']['message']['message_id']
@@ -119,39 +113,49 @@ def index():
             sendMessage(chatId, f'Из категории {category}. {mes}', replyMessageId=None)
 
         # действия при наличии сообщения от пользователя
-        elif 'text' in r['message']:
+        if "message" in r or "edited_message" in r:
             vars = varMess(r)
-            chatId = r[vars]['chat']['id']
-            message = r[vars]['text']
-            userName = r[vars]['from']['first_name']
-            replyMessageId = r[vars]['message_id']
+            if "text" in r[vars]:
+                chatId = r[vars]['chat']['id']
+                message = r[vars]['text']
+                userName = r[vars]['from']['first_name']
+                replyMessageId = r[vars]['message_id']
 
-            pattern = r"(?i)(\b)bot(\b)\s"
+                pattern = r"(?i)(\b)bot(\b)\s"
 
-            # отлов сообщений с текстом бот и дальнейшая обработка с api запросом к яндексу
-            if re.search(pattern, message):
-                mes = parser.getURLs(parser.parsText(message))
-                sendMessage(chatId, mes, replyMessageId)
+                # отлов сообщений с текстом бот и дальнейшая обработка с api запросом к яндексу
+                if re.search(pattern, message):
+                    mes = parser.getURLs(parser.parsText(message))
+                    sendMessage(chatId, mes, replyMessageId)
 
-            # действия на команду старт
-            elif '/start' in message:
-                sendKeyboard(chatId, variables.commandStart, userName, replyMessageId)
+                # действия на команду старт
+                elif "/start" in message:
+                    sendKeyboard(chatId, variables.commandStart, userName, replyMessageId)
 
-            # действия на команду помощь
-            elif '/help' in message or message == 'как тобой управлять?':
-                sendMessage(chatId, variables.commandHelp, replyMessageId, replyMarkup = 'keyboardDel')
+                # действия на команду помощь
+                elif '/help' in message or message == 'как тобой управлять?':
+                    sendMessage(chatId, variables.commandHelp, replyMessageId, replyMarkup = 'keyboardDel')
 
-            # действия на команду выбора
-            elif '/choice' in message or message == 'выбрать категорию видео':
-                sendInlineKeyboard(chatId, 'Каравай, каравай, кого хочешь - выбирай')
+                # действия на команду выбора
+                elif '/choice' in message or message == 'выбрать категорию видео':
+                    sendInlineKeyboard(chatId, 'Каравай, каравай, кого хочешь - выбирай')
 
-            # действия на команду отмены
-            elif message == 'ничего не хочу':
-                sendMessage(chatId, f"{userName}, буду нужен - вызывай!", replyMessageId, replyMarkup = 'keyboardDel')
+                # действия на команду отмены
+                elif message == 'ничего не хочу':
+                    sendMessage(chatId, f"{userName}, буду нужен - вызывай!", replyMessageId, replyMarkup = 'keyboardDel')
 
-            # инструкции для команды по отлавливанию ключевых слов
-            elif message == 'хочу видео без категорий':
-                sendMessage(chatId, variables.sendVideoRules, replyMessageId,replyMarkup = 'keyboardDel')
+                # инструкции для команды по отлавливанию ключевых слов
+                elif message == 'хочу видео без категорий':
+                    sendMessage(chatId, variables.sendVideoRules, replyMessageId,replyMarkup = 'keyboardDel')
+
+
+
+            # действия при наличии вновь прибывшего в чате
+            elif 'new_chat_member' in r['message']:
+                chatId = r['message']['chat']['id']
+                userName = r['message']['new_chat_member']['first_name']
+
+                sendMessage(chatId, f'{userName}, {variables.welcomeMessage}', replyMessageId=None)
 
         return jsonify(r)
 
