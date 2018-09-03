@@ -1,0 +1,12 @@
+# файл с токенами
+constants.py
+
+#кэш-файлы
+.DS_Store
+__pycache__
+
+#тестовый файл с json ответами
+answer.json
+
+#тестовый файл парсер
+parser-test.py
