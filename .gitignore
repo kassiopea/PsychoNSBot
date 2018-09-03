@@ -10,3 +10,6 @@ answer.json
 
 #тестовый файл парсер
 parser-test.py
+
+#папка с билдом
+duild/
