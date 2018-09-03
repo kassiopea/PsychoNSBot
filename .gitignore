@@ -12,4 +12,4 @@ answer.json
 parser-test.py
 
 #папка с билдом
-/duild
+duild/
