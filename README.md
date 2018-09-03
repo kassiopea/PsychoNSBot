@@ -43,4 +43,4 @@ answer.json - отладочный файл для чтения запросов
 
 ---
 
-Краткую инструкцию пользователя можно посмотреть в wiki
+Краткую инструкцию пользователя можно посмотреть в [wiki](https://github.com/kassiopea/PsychoNSBot/blob/master/.wiki#table-of-contents)
