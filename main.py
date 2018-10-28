@@ -1,36 +1,65 @@
 from flask import Flask
 from flask import request
 from flask import jsonify
-# from flask_sslify import SSLify
+from flask_sslify import SSLify
 import requests
 import json
 import re
 import random
-import parser
 import constants
 import variables
 
 app = Flask(__name__)
-# sslify = SSLify(app)
+sslify = SSLify(app)
 
 URL = f"https://api.telegram.org/bot{constants.tokenTelBot}/"
 
-
-print(URL+'setWebhook'+'?url=https://stasyakass.pythonanywhere.com/')
-# #для удаления setWebhook и привязки setWebhook
-print(URL+'setWebhook'+'?url=https://71d4a9d0.ngrok.io')
-print(URL + 'deleteWebhook')
-
-#прокси для тестирования с локалки
-proxies = {
-    "http": constants.httpProxy,
-    "https": constants.httpsProxy
-}
+urlYa = 'https://cloud-api.yandex.net/v1/disk/resources/public'
 
 #временная функция для записи post запросов в файл json
 def writeJson(data, filename='answer.json'):
     with open(filename, 'w') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
+
+# функция распознования ключевой фразы про бота
+def parsText(text):
+    pattern = r"(?i)(\b)bot(\b)\s\w+[-]*[\d]*"
+
+    try:
+        resAnswer = re.search(pattern, text).group()
+    except AttributeError:
+        resAnswer = re.match(pattern, text)
+
+    if resAnswer:
+        val = resAnswer[4:].lower()
+
+        for key, value in variables.patterKeywords.items():
+            if val in value:
+                return(key)
+
+    return False
+
+# функция по получению ссылки на видео
+def getURLs(nameVideo):
+    if nameVideo != False:
+        result = requests.get(urlYa, params=constants.currentUpdateParams, headers=constants.headers)
+        ans = result.json()
+        allUrls = []
+
+        if nameVideo == 'all':
+            for i in ans['items']:
+                allUrls.append(i['public_url'])
+        else:
+            for i in ans['items']:
+                if nameVideo in i['name']:
+                    allUrls.append(i['public_url'])
+
+        randomURL = random.choice(allUrls)
+        return f"Приятного просмотра!\n{randomURL}"
+
+    else:
+        return 'Извините, в нашей базе нет таких видео. Попробуйте снова.'
+
 
 #функция отправки сообщений
 def sendMessage(chatId, text, replyMessageId, replyMarkup = None):
@@ -52,7 +81,7 @@ def sendMessage(chatId, text, replyMessageId, replyMarkup = None):
         answer = {'chat_id': chatId,
                   'text': text}
 
-    r = requests.post(url, json = answer, proxies=proxies)
+    r = requests.post(url, json = answer)
     return r.json()
 
 #функция для пересылки кастомной клавиатуры
@@ -71,7 +100,7 @@ def sendKeyboard(chatId, text, userName, replyMessageId):
               'reply_markup': ReplyKeyboardMarkup
               }
 
-    r = requests.post(url, json = answer, proxies=proxies)
+    r = requests.post(url, json = answer)
     return r.json()
 
 # функция инлайн клавиатуры
@@ -84,7 +113,7 @@ def sendInlineKeyboard(chatId, text):
               'reply_markup': reply_markup
               }
 
-    r = requests.post(url, json = answer, proxies=proxies)
+    r = requests.post(url, json = answer)
     return r.json()
 
 # функция определения, есть ли в ответе отредактированные сообщения
@@ -99,21 +128,18 @@ def varMess(r):
 def index():
     if request.method == 'POST':
         r = request.get_json()
-        # print(r)
-        # writeJson(r)
-
         #действия при наличии collback по нажатию на инлайн клавиатуру
         if 'callback_query' in r:
             chatId = r['callback_query']['message']['chat']['id']
             message = r['callback_query']['data']
             replyMessageId = r['callback_query']['message']['message_id']
-            mes = parser.getURLs(message)
+            mes = getURLs(message)
             category = variables.videoCategory[message]
 
             sendMessage(chatId, f'Из категории {category}. {mes}', replyMessageId=None)
 
         # действия при наличии сообщения от пользователя
-        if "message" in r or "edited_message" in r:
+        elif "message" in r or "edited_message" in r:
             vars = varMess(r)
             if "text" in r[vars]:
                 chatId = r[vars]['chat']['id']
@@ -125,7 +151,7 @@ def index():
 
                 # отлов сообщений с текстом бот и дальнейшая обработка с api запросом к яндексу
                 if re.search(pattern, message):
-                    mes = parser.getURLs(parser.parsText(message))
+                    mes = getURLs(parsText(message))
                     sendMessage(chatId, mes, replyMessageId)
 
                 # действия на команду старт
@@ -147,7 +173,6 @@ def index():
                 # инструкции для команды по отлавливанию ключевых слов
                 elif message == 'хочу видео без категорий':
                     sendMessage(chatId, variables.sendVideoRules, replyMessageId,replyMarkup = 'keyboardDel')
-
 
 
             # действия при наличии вновь прибывшего в чате
