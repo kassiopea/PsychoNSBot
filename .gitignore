@@ -3,4 +3,5 @@ constants.py
 __pycache__
 answer.json
 parser-test.py
+parser.py
 build/*
